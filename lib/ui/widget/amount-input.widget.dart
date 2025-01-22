@@ -1,38 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
-import 'package:flutter_multi_formatter/formatters/money_input_formatter.dart';
-
-typedef void StringCallback(String number);
 
 class AmountInput extends StatelessWidget {
+  final TextEditingController controller;
+  final String currencyCode;
+  final bool autofocus;
 
-  final StringCallback callback;
-
-  AmountInput(this.callback);
+  const AmountInput({
+    super.key,
+    required this.controller,
+    required this.currencyCode,
+    this.autofocus = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-          maxLength: 20,
-          decoration: InputDecoration(
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25.0),
-                        ),
-                      ),
-          style: TextStyle(fontSize: 18.0),
-          textInputAction: TextInputAction.done,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          onChanged: (text) {
-            callback(text);
-          },
-          inputFormatters: [
-              MoneyInputFormatter(thousandSeparator: ThousandSeparator.None),
-              BlacklistingTextInputFormatter(new RegExp('-')),
-            ],
-          );
+      controller: controller,
+      autofocus: autofocus,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+      ),
+      decoration: InputDecoration(
+        hintText: '0.00',
+        suffixText: currencyCode,
+        suffixStyle: TextStyle(
+          color: Theme.of(context).primaryColor,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.deny(RegExp('-')),
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+      ],
+    );
   }
 }

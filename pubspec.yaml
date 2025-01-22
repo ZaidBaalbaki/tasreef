@@ -14,29 +14,33 @@ description: A new Flutter project.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.1.0 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   
-  http: 0.12.0+4
-  money: ^0.2.1
-  rxdart: 0.23.1
-  redux: ^4.0.0
-  flutter_redux: ^0.6.0
-  redux_thunk: ^0.3.0
-  google_fonts: ^0.1.0
-  currency_icons: ^0.0.2
-  flutter_multi_formatter: ^1.1.5
-  flutter_statusbarcolor: ^0.2.3
-  provider: ^4.0.4
-  custom_radio_grouped_button: ^1.0.0
-  charts_flutter: ^0.6.0
+  http: ^1.1.0
+  decimal: ^2.3.3
+  rxdart: ^0.27.7
+  redux: ^5.0.0
+  flutter_redux: ^0.10.0
+  redux_thunk: ^0.4.0
+  google_fonts: ^5.1.0
+  currency_icons: ^0.3.0
+  flutter_multi_formatter: ^2.12.0
+  flutter_statusbarcolor_ns: ^0.5.0
+  provider: ^6.0.5
+  custom_radio_grouped_button: ^2.2.1
+  fl_chart: ^0.65.0
+  intl: ^0.18.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^0.1.2
+  cupertino_icons: ^1.0.6
+  
+  # Firebase
+  firebase_core: ^2.24.2
 
 dev_dependencies:
   flutter_test:

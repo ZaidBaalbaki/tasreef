@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615902545487",
+    "project_id": "tasreef",
+    "storage_bucket": "tasreef.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615902545487:android:0691ce8f2b8ac7b4428c3a",
+        "android_client_info": {
+          "package_name": "com.example.easy_exchange"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLEGmfz4fMu97C7mqCRejjpKcWnsUYWDA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

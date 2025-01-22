@@ -1,15 +1,23 @@
 class Response<T> {
-  Status status;
-  T data;
-  String message;
+  final Status status;
+  final T? data;
+  final String? message;
 
-  Response.loading(this.message) : status = Status.LOADING;
-  Response.completed(this.data) : status = Status.COMPLETED;
-  Response.error(this.message) : status = Status.ERROR;
+  Response.loading([this.message]) 
+    : status = Status.LOADING,
+      data = null;
+
+  Response.completed(this.data)
+    : status = Status.COMPLETED,
+      message = null;
+
+  Response.error(this.message)
+    : status = Status.ERROR,
+      data = null;
 
   @override
   String toString() {
-    return "Status : $status \n Message : $message \n Data : $data";
+    return "Status: $status\nMessage: ${message ?? 'No message'}\nData: ${data ?? 'No data'}";
   }
 }
 

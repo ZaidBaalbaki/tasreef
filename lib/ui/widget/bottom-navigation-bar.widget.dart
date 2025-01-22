@@ -4,87 +4,72 @@ import 'package:easy_exchange/ui/pages/rates.page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class BottomNavigationBarWidget extends StatefulWidget {
-  BottomNavigationBarWidget({Key key}) : super(key: key);
-
-  @override
-  _BottomNavigationBarState createState() => _BottomNavigationBarState();
-}
-
-class _BottomNavigationBarState extends State<BottomNavigationBarWidget> {
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
-  String appBarTitle = "Converter";
-
-  var currentTab = [
-    RatesPage(),
-    ExchangePage(),
-    GraphsPage(),
-  ];
+class BottomNavigationBarWidget extends StatelessWidget {
+  const BottomNavigationBarWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var provider = Provider.of<BottomNavigationBarProvider>(context);
-    return Scaffold(
-      key: _scaffoldKey,
-      resizeToAvoidBottomInset: false,
-      appBar: new AppBar(
-          title: Text(
-            appBarTitle,
+    return Consumer<BottomNavigationBarProvider>(
+      builder: (context, provider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              _getAppBarTitle(provider.currentIndex),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            centerTitle: true,
+            elevation: 0,
           ),
-          centerTitle: true,
-          elevation: 0.0,
-        ), 
-      body: IndexedStack(
-        index: provider.currentIndex,
-        children: currentTab,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: provider.currentIndex,
-        onTap: (index) {
-          provider.currentIndex = index;
-          if(index == 0){
-            setState(() {
-              appBarTitle = "Rates";
-            });
-          } else if(index == 1){
-            setState(() {
-              appBarTitle = "Converter";
-            });
-          } else if(index == 2){
-            setState(() {
-              appBarTitle = "Graph";
-            });
-          }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/dollar-sign.png'),
-            activeIcon: Image.asset('assets/images/dollar-sign-active.png'),
-            title: Text('Rates'),
+          body: IndexedStack(
+            index: provider.currentIndex,
+            children: const [
+              RatesPage(),
+              ConverterPage(),
+              GraphsPage(),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/converter.png'),
-            activeIcon: Image.asset('assets/images/converter-active.png'),
-            title: Text('Converter'),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: provider.currentIndex,
+            onTap: provider.setCurrentIndex,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.list),
+                label: 'Rates',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.swap_horiz),
+                label: 'Convert',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.show_chart),
+                label: 'Graphs',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Image.asset('assets/images/graph.png'),
-            activeIcon: Image.asset('assets/images/graph-active.png'),
-            title: Text('Graph'),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  String _getAppBarTitle(int index) {
+    return switch (index) {
+      0 => 'Currency Rates',
+      1 => 'Currency Converter',
+      2 => 'Exchange Graphs',
+      _ => 'Easy Exchange',
+    };
   }
 }
 
-class BottomNavigationBarProvider with ChangeNotifier {
-  int _currentIndex = 1;
+class BottomNavigationBarProvider extends ChangeNotifier {
+  int _currentIndex = 0;
 
-  get currentIndex => _currentIndex;
+  int get currentIndex => _currentIndex;
 
-  set currentIndex(int index) {
-    _currentIndex = index;
-    notifyListeners();
+  void setCurrentIndex(int index) {
+    if (_currentIndex != index) {
+      _currentIndex = index;
+      notifyListeners();
+    }
   }
 }

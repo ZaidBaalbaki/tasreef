@@ -1,60 +1,49 @@
-import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
-import 'package:easy_exchange/util/colors.dart';
+import 'package:easy_exchange/model/currency-rates.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
-typedef void StringCallback(String code, double rate);
+class CurrencyButton extends StatelessWidget {
+  final String currencyCode;
+  final VoidCallback onPressed;
 
-class CurrencyButton extends StatefulWidget {
-  final String baseCurrency;
-  final StringCallback callback;
-
-  const CurrencyButton(this.baseCurrency, this.callback);
-
-  @override
-  _CurrencyButtonState createState() => _CurrencyButtonState();
-}
-
-class _CurrencyButtonState extends State<CurrencyButton> {
+  const CurrencyButton({
+    super.key,
+    required this.currencyCode,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return RaisedButton(
-      elevation: 2.0,
-      color: primaryGrey,
+    final currency = Currency(currencyCode);
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: Theme.of(context).primaryColor,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                CircleAvatar(
-                  radius: 18.0,
-                  backgroundImage: AssetImage(
-                    'icons/currency/${widget.baseCurrency.toLowerCase()}.png',
-                    package: 'currency_icons',
-                  ),
-                ),
-                SizedBox(
-                  width: 5.0,
-                ),
-                Text(
-                  widget.baseCurrency,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24.0),
-                ),
-              ],
+          children: [
+            Text(
+              currency.code,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_drop_down,
+              color: Theme.of(context).primaryColor,
             ),
           ],
         ),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-      textColor: Colors.black,
-      onPressed: () => showModalBottomSheet(
-          backgroundColor: Colors.transparent,
-          isScrollControlled: true,
-          context: context,
-          builder: (_) => CurrenciesBottomSheet(widget.baseCurrency, widget.callback)),
     );
   }
 }

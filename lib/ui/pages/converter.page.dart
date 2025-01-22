@@ -1,175 +1,167 @@
-import 'package:easy_exchange/model/index.dart';
-import 'package:easy_exchange/services/repository/currency-rates-repository.dart';
+import 'package:easy_exchange/model/currency-rates.dart';
+import 'package:easy_exchange/services/bloc/currency-rate-bloc.dart';
+import 'package:easy_exchange/services/networking/response.dart';
 import 'package:easy_exchange/ui/widget/amount-input.widget.dart';
+import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
 import 'package:easy_exchange/ui/widget/currency-button.widget.dart';
-import 'package:easy_exchange/ui/widget/swap-currencies-button.widget.dart';
-import 'package:easy_exchange/util/colors.dart';
 import 'package:flutter/material.dart';
 
-class ExchangePage extends StatefulWidget {
+class ConverterPage extends StatefulWidget {
+  const ConverterPage({super.key});
+
   @override
-  _ExchangePageState createState() => _ExchangePageState();
+  State<ConverterPage> createState() => _ConverterPageState();
 }
 
-class _ExchangePageState extends State<ExchangePage> {
-  String _originCurrencyCode = "EUR";
-  String _destinationCurrencyCode = "USD";
-  double _destinationCurrencyRate = 1.13;
+class _ConverterPageState extends State<ConverterPage> {
+  final _originAmountController = TextEditingController();
+  final _destinationAmountController = TextEditingController();
+  final _bloc = CurrencyRatesListBloc();
+  String _originCurrencyCode = 'USD';
+  String _destinationCurrencyCode = 'EUR';
+  double _rate = 0.0;
 
-  double amountToConvert = 0.0;
-
-  CurrencyRatesRepository _repository = new CurrencyRatesRepository();
-
-  changeOrigenCurrency(newOrigenCurrencyCode, newOrigenCurrencyRate) async {
-    CurrencyRates rates = await _repository.fetchSpecificCurrencyRates(
-        newOrigenCurrencyCode, _destinationCurrencyCode);
-
-    setState(() {
-      _originCurrencyCode = newOrigenCurrencyCode;
-      _destinationCurrencyRate = rates.rates[0].rate;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _originAmountController.addListener(_updateDestinationAmount);
+    _fetchRate();
   }
 
-  changeDestinationCurrency(
-      newDestinationCurrencyCode, newDestinationCurrencyRate) async {
-    CurrencyRates rates = await _repository.fetchSpecificCurrencyRates(
-        _originCurrencyCode, newDestinationCurrencyCode);
-
-    setState(() {
-      _destinationCurrencyCode = newDestinationCurrencyCode;
-      _destinationCurrencyRate = rates.rates[0].rate;
-    });
+  Future<void> _fetchRate() async {
+    await _bloc.fetchSpecificCurrencyRate(
+      _originCurrencyCode,
+      _destinationCurrencyCode,
+    );
   }
 
-  changeAmount(newAmount) {
-    setState(() {
-      amountToConvert = double.parse(newAmount);
-    });
+  void _updateDestinationAmount() {
+    if (_originAmountController.text.isEmpty) {
+      _destinationAmountController.text = '';
+      return;
+    }
+
+    final amount = double.tryParse(_originAmountController.text) ?? 0;
+    final convertedAmount = amount * _rate;
+    _destinationAmountController.text = convertedAmount.toStringAsFixed(2);
   }
 
-  swapCurrencies() async {
-    CurrencyRates rates = await _repository.fetchSpecificCurrencyRates(
-        _destinationCurrencyCode, _originCurrencyCode);
-
+  void _swapCurrencies() {
     setState(() {
-      String temporaryString = _originCurrencyCode;
+      final tempCurrency = _originCurrencyCode;
       _originCurrencyCode = _destinationCurrencyCode;
-      _destinationCurrencyCode = temporaryString;
-      _destinationCurrencyRate = rates.rates[0].rate;
+      _destinationCurrencyCode = tempCurrency;
+      _rate = 1 / _rate;
+      
+      // Swap amounts
+      final tempAmount = _originAmountController.text;
+      _originAmountController.text = _destinationAmountController.text;
+      _destinationAmountController.text = tempAmount;
     });
+    _fetchRate();
+  }
+
+  void _selectCurrency(bool isOrigin) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return CurrenciesBottomSheet(
+          baseCurrency: isOrigin ? _destinationCurrencyCode : _originCurrencyCode,
+          onCurrencySelected: (code, rate) {
+            setState(() {
+              if (isOrigin) {
+                _originCurrencyCode = code;
+              } else {
+                _destinationCurrencyCode = code;
+              }
+              if (rate != null) {
+                _rate = isOrigin ? 1 / rate : rate;
+                _updateDestinationAmount();
+              }
+            });
+            Navigator.pop(context);
+            _fetchRate();
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final halfMediaWidth = MediaQuery.of(context).size.width / 1.1;
+    return StreamBuilder<Response<CurrencyRates>>(
+      stream: _bloc.currencyRatesStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.status == Status.COMPLETED) {
+          final rate = snapshot.data!.data!.findRate(_destinationCurrencyCode);
+          if (rate != null) {
+            _rate = rate.rate;
+            _updateDestinationAmount();
+          }
+        }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              AmountInput(
+                controller: _originAmountController,
+                currencyCode: _originCurrencyCode,
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CurrencyButton(
+                    currencyCode: _originCurrencyCode,
+                    onPressed: () => _selectCurrency(true),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.swap_horiz),
+                    onPressed: _swapCurrencies,
+                  ),
+                  CurrencyButton(
+                    currencyCode: _destinationCurrencyCode,
+                    onPressed: () => _selectCurrency(false),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AmountInput(
+                controller: _destinationAmountController,
+                currencyCode: _destinationCurrencyCode,
+              ),
+              if (snapshot.hasData && snapshot.data!.status == Status.COMPLETED)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    '1 $_originCurrencyCode = $_rate $_destinationCurrencyCode',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+              if (snapshot.hasData && snapshot.data!.status == Status.ERROR)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    'Error: ${snapshot.data!.message}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-        body: Center(
-            child: Column(
-          children: <Widget>[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text("Amount",
-                    style: TextStyle(color: Colors.grey, fontSize: 20.0)),
-                SizedBox(
-                  height: 10.0,
-                ),
-                Container(
-                    width: halfMediaWidth,
-                    height: 55.0,
-                    child: AmountInput(changeAmount)),
-              ],
-            ),
-            SizedBox(
-              height: 40.0,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text("From",
-                        style: TextStyle(color: Colors.grey, fontSize: 20.0)),
-                    SizedBox(
-                      height: 10.0,
-                    ),
-                    CurrencyButton(_originCurrencyCode, changeOrigenCurrency),
-                  ],
-                ),
-                Column(
-                  children: <Widget>[
-                    SizedBox(
-                      height: 40.0,
-                    ),
-                    SwapCurrenciesButton(swapCurrencies),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      "To",
-                      style: TextStyle(color: Colors.grey, fontSize: 20.0),
-                    ),
-                    SizedBox(
-                      height: 10.0,
-                    ),
-                    CurrencyButton(
-                        _destinationCurrencyCode, changeDestinationCurrency),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(
-              height: 30.0,
-            ),
-            Text(
-              "1 " +
-                  _originCurrencyCode +
-                  " = " +
-                  _destinationCurrencyRate.toString() +
-                  " " +
-                  _destinationCurrencyCode,
-              style: TextStyle(fontSize: 16.0),
-            ),
-            SizedBox(
-              height: 40.0,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                    (amountToConvert).toStringAsFixed(2),
-                    style: TextStyle(
-                        fontSize: 21.0,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(width: 10.0,),
-                Text(_originCurrencyCode,
-                    style: TextStyle(
-                        fontSize: 21.0,
-                        color: Colors.grey,))
-              ],
-            ),
-            Text("=",
-                style: TextStyle(
-                    fontSize: 24.0,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold)),
-            Text(
-                (amountToConvert * _destinationCurrencyRate)
-                        .toStringAsFixed(2) +
-                    " " +
-                    _destinationCurrencyCode,
-                style: TextStyle(
-                    fontSize: 45,
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold)),
-          ],
-        )));
+  @override
+  void dispose() {
+    _originAmountController.dispose();
+    _destinationAmountController.dispose();
+    _bloc.dispose();
+    super.dispose();
   }
 }

@@ -1,71 +1,120 @@
+import 'package:easy_exchange/model/currency-rates.dart';
 import 'package:easy_exchange/services/bloc/currency-rate-bloc.dart';
-import 'package:easy_exchange/model/index.dart';
-import 'package:easy_exchange/services/networking/index.dart';
+import 'package:easy_exchange/services/networking/response.dart';
+import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
 import 'package:flutter/material.dart';
 
-typedef void StringCallback(String code, double rate);
-
-
-class CurrencyRateList extends StatelessWidget {
+class CurrencyRateList extends StatefulWidget {
   final String baseCurrency;
-  final StringCallback callback;
+  final CurrencyCallback? onCurrencySelected;
+  final String? searchQuery;
 
-  CurrencyRateList(this.baseCurrency, this.callback);
+  const CurrencyRateList({
+    super.key,
+    required this.baseCurrency,
+    this.onCurrencySelected,
+    this.searchQuery,
+  });
+
+  @override
+  State<CurrencyRateList> createState() => _CurrencyRateListState();
+}
+
+class _CurrencyRateListState extends State<CurrencyRateList> {
+  final CurrencyRatesListBloc _bloc = CurrencyRatesListBloc();
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
+  }
+
+  @override
+  void didUpdateWidget(CurrencyRateList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.baseCurrency != widget.baseCurrency) {
+      _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
+    }
+  }
+
+  List<Rate> _filterRates(List<Rate> rates) {
+    if (widget.searchQuery == null || widget.searchQuery!.isEmpty) {
+      return rates;
+    }
+    return rates.where((rate) {
+      return rate.currency.code.toLowerCase().contains(widget.searchQuery!) ||
+          rate.currency.name.toLowerCase().contains(widget.searchQuery!);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final CurrencyRatesListBloc _bloc = CurrencyRatesListBloc();
-
-    _bloc.fetchBaseCurrencyRates(this.baseCurrency);
-
     return StreamBuilder<Response<CurrencyRates>>(
-        stream: _bloc.currencyRatesListStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            switch (snapshot.data.status) {
-              case Status.LOADING:
-                return Center(child: CircularProgressIndicator());
-                break;
+      stream: _bloc.currencyRatesStream,
+      builder: (context, AsyncSnapshot<Response<CurrencyRates>> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-              case Status.COMPLETED:
-                return Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: ListView.builder(
-                          itemCount: snapshot.data.data.rates.length,
-                          padding: EdgeInsets.all(0.0),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            return ListTile(
-                                leading: CircleAvatar(
-                                  radius: 18.0,
-                                  backgroundImage: AssetImage(
-                                    'icons/currency/${snapshot.data.data.rates[index].currency.code.toLowerCase()}.png',
-                                    package: 'currency_icons',
-                                  ),
-                                ),
-                                title: Text(snapshot
-                                    .data.data.rates[index].currency.name),
-                                subtitle: Text(snapshot
-                                    .data.data.rates[index].currency.code),
-                                onTap: () {
-                                  callback(snapshot
-                                      .data.data.rates[index].currency.code, snapshot
-                                      .data.data.rates[index].rate);
-                                  Navigator.pop(context);
-                                });
-                          }),
-                    ),
-                  ],
-                );
-                break;
-              case Status.ERROR:
-                return Center(child: CircularProgressIndicator());
-                break;
+        final response = snapshot.data!;
+        switch (response.status) {
+          case Status.LOADING:
+            return const Center(child: CircularProgressIndicator());
+          case Status.COMPLETED:
+            final filteredRates = _filterRates(response.data!.rates);
+            if (filteredRates.isEmpty && widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+              return const Center(
+                child: Text(
+                  'No currencies found',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              );
             }
-          }
-          return Container();
-        });
+            return ListView.separated(
+              itemCount: filteredRates.length,
+              separatorBuilder: (context, index) => const Divider(),
+              itemBuilder: (context, index) {
+                final rate = filteredRates[index];
+                return ListTile(
+                  title: Text(
+                    rate.currency.code,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(rate.currency.name),
+                  trailing: Text(
+                    rate.rate.toStringAsFixed(4),
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  onTap: widget.onCurrencySelected != null
+                      ? () => widget.onCurrencySelected!(rate.currency.code, rate.rate)
+                      : null,
+                );
+              },
+            );
+          case Status.ERROR:
+            return Center(
+              child: Text(
+                'Error: ${response.message}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _bloc.dispose();
+    super.dispose();
   }
 }

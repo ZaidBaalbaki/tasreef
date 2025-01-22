@@ -1,120 +1,101 @@
-import 'package:custom_radio_grouped_button/CustomButtons/CustomRadioButton.dart';
 import 'package:easy_exchange/ui/widget/currency-button.widget.dart';
 import 'package:easy_exchange/ui/widget/currency-history-graph.widget.dart';
-import 'package:easy_exchange/ui/widget/swap-currencies-button.widget.dart';
-import 'package:easy_exchange/util/colors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class GraphsPage extends StatefulWidget {
-  const GraphsPage({Key key}) : super(key: key);
+  const GraphsPage({super.key});
 
   @override
-  _GraphsPageState createState() => _GraphsPageState();
+  State<GraphsPage> createState() => _GraphsPageState();
 }
 
-class _GraphsPageState extends State<GraphsPage>
-    with SingleTickerProviderStateMixin {
-  String _originCurrencyCode = "EUR";
-  String _destinationCurrencyCode = "USD";
-  int _days = 1;
+class _GraphsPageState extends State<GraphsPage> {
+  String _originCurrencyCode = 'USD';
+  String _destinationCurrencyCode = 'EUR';
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _endDate = DateTime.now();
+  String _selectedPeriod = '1M';
 
-  changeOrigenCurrency(newOrigenCurrencyCode, newOrigenCurrencyRate) {
+  void _updatePeriod(String period) {
     setState(() {
-      _originCurrencyCode = newOrigenCurrencyCode;
-    });
-  }
-
-  changeDestinationCurrency(
-      newDestinationCurrencyCode, newDestinationCurrencyRate) {
-    setState(() {
-      _destinationCurrencyCode = newDestinationCurrencyCode;
-    });
-  }
-
-  swapCurrencies() {
-    setState(() {
-      String temporaryString = _originCurrencyCode;
-      _originCurrencyCode = _destinationCurrencyCode;
-      _destinationCurrencyCode = temporaryString;
+      _selectedPeriod = period;
+      switch (period) {
+        case '1W':
+          _startDate = DateTime.now().subtract(const Duration(days: 7));
+          break;
+        case '1M':
+          _startDate = DateTime.now().subtract(const Duration(days: 30));
+          break;
+        case '3M':
+          _startDate = DateTime.now().subtract(const Duration(days: 90));
+          break;
+        case '6M':
+          _startDate = DateTime.now().subtract(const Duration(days: 180));
+          break;
+        case '1Y':
+          _startDate = DateTime.now().subtract(const Duration(days: 365));
+          break;
+      }
+      _endDate = DateTime.now();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                CurrencyButton(_originCurrencyCode, changeOrigenCurrency),
-                SwapCurrenciesButton(swapCurrencies),
-                CurrencyButton(
-                    _destinationCurrencyCode, changeDestinationCurrency),
-              ],
-            ),
-            SizedBox(
-              height: 20.0,
-            ),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-                    child: CustomRadioButton(
-                      horizontal: false,
-                      enableShape: true,
-                      hight: 45.0,
-                      customShape: CircleBorder(),
-                      elevation: 2.0,
-                      buttonColor: primaryGrey,
-                      buttonLables: [
-                        "1D",
-                        "1S",
-                        "1M",
-                        "3M",
-                        "1A",
-                        "5A",
-                      ],
-                      buttonValues: [
-                        "1",
-                        "7",
-                        "30",
-                        "90",
-                        "365",
-                        "1825",
-                      ],
-                      radioButtonValue: (value) {
-                        setState(() {
-                          _days = int.parse(value);
-                        });
-                      },
-                      selectedColor: primaryColor,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              CurrencyButton(
+                currencyCode: _originCurrencyCode,
+                onPressed: () async {
+                  // TODO: Implement currency selection
+                },
+              ),
+              const Icon(Icons.compare_arrows),
+              CurrencyButton(
+                currencyCode: _destinationCurrencyCode,
+                onPressed: () async {
+                  // TODO: Implement currency selection
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: ['1W', '1M', '3M', '6M', '1Y'].map((period) {
+                final isSelected = period == _selectedPeriod;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: ElevatedButton(
+                    onPressed: () => _updatePeriod(period),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isSelected ? Theme.of(context).primaryColor : Colors.white,
+                      foregroundColor: isSelected ? Colors.white : Theme.of(context).primaryColor,
+                      elevation: isSelected ? 2 : 1,
                     ),
+                    child: Text(period),
                   ),
-                )
-              ],
+                );
+              }).toList(),
             ),
-            SizedBox(height: 10.0,),
-            Row(
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(left: 22.0),
-                  child: Text(
-                      _originCurrencyCode + "/" + _destinationCurrencyCode,
-                      style: TextStyle(
-                          color: primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18.0)),
-                )
-              ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: CurrencyHistoryGraph(
+              originCurrencyCode: _originCurrencyCode,
+              destinationCurrencyCode: _destinationCurrencyCode,
+              startDate: _startDate,
+              endDate: _endDate,
             ),
-            CurrencyHistoryGraph(
-                _originCurrencyCode, _destinationCurrencyCode, _days)
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

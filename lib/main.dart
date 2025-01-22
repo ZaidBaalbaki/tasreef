@@ -3,39 +3,50 @@ import 'package:easy_exchange/util/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() => runApp(EasyExchange());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const EasyExchange());
+}
 
 class EasyExchange extends StatelessWidget {
+  const EasyExchange({super.key});
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-            statusBarColor: Colors.white,
-            /* set Status bar color in Android devices. */
-
-            statusBarIconBrightness: Brightness.dark,
-            /* set Status bar icons color in Android devices.*/
-
-            statusBarBrightness:
-                Brightness.dark) /* set Status bar icon color in iOS. */
-        );
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.dark,
+    ));
 
     return MaterialApp(
       title: 'Easy Exchange',
       theme: ThemeData(
         primaryColor: primaryColor,
-        scaffoldBackgroundColor: Color(0xFFFFFFFF),
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
         fontFamily: 'TitilliumWeb',
-        primaryTextTheme: TextTheme(
-            headline6:
-                TextStyle(color: primaryColor, fontSize: 26.0, fontWeight: FontWeight.bold)),
-        appBarTheme:
-            AppBarTheme(color: Colors.white, brightness: Brightness.light),
+        textTheme: TextTheme(
+          titleLarge: TextStyle(
+            color: primaryColor,
+            fontSize: 26.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          color: Colors.white,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+        ),
       ),
       debugShowCheckedModeBanner: false,
       home: ChangeNotifierProvider<BottomNavigationBarProvider>(
-        child: BottomNavigationBarWidget(),
         create: (BuildContext context) => BottomNavigationBarProvider(),
+        child: const BottomNavigationBarWidget(),
       ),
     );
   }

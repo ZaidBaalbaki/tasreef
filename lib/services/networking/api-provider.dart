@@ -8,36 +8,44 @@ import 'dart:async';
 
 class ApiProvider {
   final String _baseUrl = Url.exchangeBaseUrl;
+  final http.Client _client = http.Client();
 
-  Future<dynamic> get(String url) async {
-    var responseJson;
-
+  Future<Map<String, dynamic>> get(String url) async {
     try {
-      final response = await http.get(_baseUrl + url);
-      responseJson = _response(response);
+      final uri = Uri.parse(_baseUrl + url);
+      final response = await _client.get(uri);
+      return _handleResponse(response);
     } on SocketException {
       throw FetchDataException('No Internet connection');
+    } on FormatException {
+      throw FetchDataException('Invalid response format');
+    } catch (e) {
+      throw FetchDataException('An unexpected error occurred: ${e.toString()}');
     }
-    return responseJson;
   }
 
-  dynamic _response(http.Response response) {
+  Map<String, dynamic> _handleResponse(http.Response response) {
     switch (response.statusCode) {
       case 200:
-        var responseJson = json.decode(response.body);
-        
+        final responseJson = json.decode(response.body) as Map<String, dynamic>;
         return responseJson;
       case 400:
         throw BadRequestException(response.body);
       case 401:
-
       case 403:
         throw UnauthorisedException(response.body);
+      case 404:
+        throw NotFoundException(response.body);
       case 500:
-
+        throw ServerException(response.body);
       default:
         throw FetchDataException(
-            'Error occured while Communication with Server with StatusCode : ${response.statusCode}');
+          'Error occurred while communicating with server. Status code: ${response.statusCode}',
+        );
     }
+  }
+
+  void dispose() {
+    _client.close();
   }
 }
