@@ -50,6 +50,7 @@ class _GraphsPageState extends State<GraphsPage> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return CurrenciesBottomSheet(
+          baseCurrency: isOrigin ? _destinationCurrencyCode : _originCurrencyCode,
           onCurrencySelected: (code, rate) {
             Navigator.pop(context, {'code': code, 'rate': rate});
           },
