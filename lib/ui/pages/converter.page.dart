@@ -20,6 +20,7 @@ class _ConverterPageState extends State<ConverterPage> {
   String _originCurrencyCode = 'USD';
   String _destinationCurrencyCode = 'SYP';
   double _rate = 0.0;
+  String? _error;
 
   @override
   void initState() {
@@ -29,10 +30,15 @@ class _ConverterPageState extends State<ConverterPage> {
   }
 
   Future<void> _fetchRate() async {
-    await _bloc.fetchSpecificCurrencyRate(
-      _originCurrencyCode,
-      _destinationCurrencyCode,
-    );
+    setState(() => _error = null);
+    try {
+      await _bloc.fetchSpecificCurrencyRate(
+        _originCurrencyCode,
+        _destinationCurrencyCode,
+      );
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
   }
 
   void _updateDestinationAmount() {
@@ -41,12 +47,34 @@ class _ConverterPageState extends State<ConverterPage> {
       return;
     }
 
-    final amount = double.tryParse(_originAmountController.text) ?? 0;
-    final convertedAmount = amount * _rate;
-    _destinationAmountController.text = convertedAmount.toStringAsFixed(2);
+    try {
+      final amount = double.tryParse(_originAmountController.text);
+      if (amount == null) {
+        _destinationAmountController.text = '';
+        return;
+      }
+
+      if (_rate <= 0) {
+        _destinationAmountController.text = '';
+        setState(() => _error = 'Invalid exchange rate');
+        return;
+      }
+
+      final convertedAmount = amount * _rate;
+      _destinationAmountController.text = convertedAmount.toStringAsFixed(2);
+      setState(() => _error = null);
+    } catch (e) {
+      _destinationAmountController.text = '';
+      setState(() => _error = 'Error converting amount');
+    }
   }
 
   void _swapCurrencies() {
+    if (_rate <= 0) {
+      setState(() => _error = 'Cannot swap with invalid rate');
+      return;
+    }
+
     setState(() {
       final tempCurrency = _originCurrencyCode;
       _originCurrencyCode = _destinationCurrencyCode;
@@ -57,6 +85,7 @@ class _ConverterPageState extends State<ConverterPage> {
       final tempAmount = _originAmountController.text;
       _originAmountController.text = _destinationAmountController.text;
       _destinationAmountController.text = tempAmount;
+      _error = null;
     });
     _fetchRate();
   }
@@ -76,10 +105,11 @@ class _ConverterPageState extends State<ConverterPage> {
               } else {
                 _destinationCurrencyCode = code;
               }
-              if (rate != null) {
+              if (rate != null && rate > 0) {
                 _rate = isOrigin ? 1 / rate : rate;
                 _updateDestinationAmount();
               }
+              _error = null;
             });
             Navigator.pop(context);
             _fetchRate();
@@ -96,10 +126,14 @@ class _ConverterPageState extends State<ConverterPage> {
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.status == Status.COMPLETED) {
           final rate = snapshot.data!.data!.findRate(_destinationCurrencyCode);
-          if (rate != null) {
+          if (rate != null && rate.rate > 0) {
             _rate = rate.rate;
             _updateDestinationAmount();
+          } else {
+            _error = 'Rate not available';
           }
+        } else if (snapshot.hasData && snapshot.data!.status == Status.ERROR) {
+          _error = snapshot.data!.message;
         }
 
         return Padding(
@@ -133,21 +167,22 @@ class _ConverterPageState extends State<ConverterPage> {
               AmountInput(
                 controller: _destinationAmountController,
                 currencyCode: _destinationCurrencyCode,
+                enabled: false,
               ),
-              if (snapshot.hasData && snapshot.data!.status == Status.COMPLETED)
+              if (_error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Text(
-                    '1 $_originCurrencyCode = $_rate $_destinationCurrencyCode',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ),
-              if (snapshot.hasData && snapshot.data!.status == Status.ERROR)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    'Error: ${snapshot.data!.message}',
+                    'Error: $_error',
                     style: const TextStyle(color: Colors.red),
+                  ),
+                )
+              else if (_rate > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    '1 $_originCurrencyCode = ${_rate.toStringAsFixed(4)} $_destinationCurrencyCode',
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
             ],
