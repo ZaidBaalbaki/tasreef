@@ -32,19 +32,28 @@ jobs:
       - name: Setup project
         run: |
           flutter config --no-analytics
+          flutter config --clear-features
+          flutter config --enable-web
           flutter config --no-enable-android
           flutter config --no-enable-ios
-          flutter config --enable-web
+          flutter config --no-enable-macos
+          flutter config --no-enable-windows
+          flutter config --no-enable-linux
           
       - name: Install dependencies
         run: |
           rm -f pubspec.lock
           flutter clean
-          flutter pub upgrade
           flutter pub get
         
       - name: Build web app
-        run: flutter build web --release --base-href /tasreef/ --web-renderer html --no-tree-shake-icons
+        run: |
+          flutter build web \
+            --release \
+            --base-href /tasreef/ \
+            --web-renderer html \
+            --dart-define=FLUTTER_WEB_USE_SKIA=false \
+            --no-tree-shake-icons
         
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
