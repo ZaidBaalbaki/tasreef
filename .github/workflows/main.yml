@@ -24,15 +24,11 @@ jobs:
           
       - name: Setup project
         run: |
-          flutter doctor -v
           flutter config --no-analytics
           flutter config --clear-features
           flutter config --enable-web
-          flutter config --no-enable-android
-          flutter config --no-enable-ios
-          flutter config --no-enable-macos
-          flutter config --no-enable-windows
-          flutter config --no-enable-linux
+          flutter config --no-android
+          flutter config --no-ios
           
       - name: Install dependencies
         run: |
