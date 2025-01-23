@@ -44,11 +44,10 @@ jobs:
         run: |
           flutter build web \
             --release \
-            --base-href /Tasreef/ \
-            --web-renderer html \
-            --dart-define=FLUTTER_WEB_USE_SKIA=false \
-            --pwa-strategy none \
-            --no-tree-shake-icons
+            --base-href /tasreef/ \
+            --web-renderer auto \
+            --dart-define=FLUTTER_WEB_USE_SKIA=true \
+            --pwa-strategy none
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
