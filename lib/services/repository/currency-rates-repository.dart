@@ -70,13 +70,13 @@ class CurrencyRatesRepository {
   }
 
   CurrencyRates _parseCurrencyRates(Map<String, dynamic> json, String baseCurrency) {
-    if (!json.containsKey('rates') || !json.containsKey('base_code')) {
+    if (!json.containsKey('rates') || !json.containsKey('base')) {
       throw FormatException('Invalid API response format');
     }
 
     final rates = json['rates'] as Map<String, dynamic>;
     final ratesMap = <String, dynamic>{
-      'base': baseCurrency,
+      'base': json['base'],
       'rates': rates,
     };
 
