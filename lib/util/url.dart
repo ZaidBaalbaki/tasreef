@@ -1,12 +1,15 @@
 class Url {
-  // Using the free Frankfurter API
-  static const String exchangeBaseUrl = 'https://api.frankfurter.app/';
-  
-  static String getLatestRatesUrl([String? baseCurrency]) {
-    return 'latest?from=${baseCurrency ?? "USD"}';
+  static const String _baseUrl = 'https://open.er-api.com/v6';
+
+  static String getLatestRatesUrl([String base = 'USD']) {
+    return '$_baseUrl/latest/$base';
   }
-  
-  static String getHistoricalRatesUrl(String date, [String? baseCurrency]) {
-    return '$date?from=${baseCurrency ?? "USD"}';
+
+  static String getHistoricalRatesUrl(String date, [String base = 'USD']) {
+    return '$_baseUrl/$date/$base';
+  }
+
+  static String getConvertUrl(String from, String to, String date) {
+    return '$_baseUrl/convert/$from/$to/$date';
   }
 }

@@ -70,7 +70,10 @@ class _CurrencyRateListState extends State<CurrencyRateList> {
           case Status.LOADING:
             return const Center(child: CircularProgressIndicator());
           case Status.COMPLETED:
-            final filteredRates = _filterRates(response.data!.rates);
+            final allRates = response.data!.rates;
+            print('Available currencies: ${allRates.map((r) => r.currency.code).toList()}');
+            final filteredRates = _filterRates(allRates);
+            print('Filtered currencies: ${filteredRates.map((r) => r.currency.code).toList()}');
             if (filteredRates.isEmpty) {
               if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
                 return const Center(

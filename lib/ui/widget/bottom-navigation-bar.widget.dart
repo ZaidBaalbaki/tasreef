@@ -1,5 +1,4 @@
 import 'package:easy_exchange/ui/pages/converter.page.dart';
-import 'package:easy_exchange/ui/pages/graphs.page.dart';
 import 'package:easy_exchange/ui/pages/rates.page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,20 +11,11 @@ class BottomNavigationBarWidget extends StatelessWidget {
     return Consumer<BottomNavigationBarProvider>(
       builder: (context, provider, _) {
         return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              _getAppBarTitle(provider.currentIndex),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            centerTitle: true,
-            elevation: 0,
-          ),
           body: IndexedStack(
             index: provider.currentIndex,
             children: const [
               RatesPage(),
               ConverterPage(),
-              GraphsPage(),
             ],
           ),
           bottomNavigationBar: BottomNavigationBar(
@@ -40,24 +30,11 @@ class BottomNavigationBarWidget extends StatelessWidget {
                 icon: Icon(Icons.swap_horiz),
                 label: 'Convert',
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.show_chart),
-                label: 'Graphs',
-              ),
             ],
           ),
         );
       },
     );
-  }
-
-  String _getAppBarTitle(int index) {
-    return switch (index) {
-      0 => 'Currency Rates',
-      1 => 'Currency Converter',
-      2 => 'Exchange Graphs',
-      _ => 'Easy Exchange',
-    };
   }
 }
 
@@ -67,9 +44,7 @@ class BottomNavigationBarProvider extends ChangeNotifier {
   int get currentIndex => _currentIndex;
 
   void setCurrentIndex(int index) {
-    if (_currentIndex != index) {
-      _currentIndex = index;
-      notifyListeners();
-    }
+    _currentIndex = index;
+    notifyListeners();
   }
 }

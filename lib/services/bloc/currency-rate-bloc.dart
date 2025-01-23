@@ -6,36 +6,30 @@ import 'package:easy_exchange/model/currency-rates.dart';
 import 'package:rxdart/rxdart.dart';
 
 class CurrencyRatesListBloc {
-  final CurrencyRatesRepository _repository;
-  final BehaviorSubject<Response<CurrencyRates>> _ratesController;
-  final BehaviorSubject<Response<HistoricalRates>> _historyController;
-  final BehaviorSubject<String?> _errorController;
+  final CurrencyRatesRepository _repository = CurrencyRatesRepository();
+  final BehaviorSubject<Response<CurrencyRates>> _subject = BehaviorSubject<Response<CurrencyRates>>();
+  final BehaviorSubject<Response<List<HistoricalRates>>> _historyController = BehaviorSubject<Response<List<HistoricalRates>>>();
 
-  CurrencyRatesListBloc()
-      : _repository = CurrencyRatesRepository(),
-        _ratesController = BehaviorSubject<Response<CurrencyRates>>(),
-        _historyController = BehaviorSubject<Response<HistoricalRates>>(),
-        _errorController = BehaviorSubject<String?>();
+  Stream<Response<CurrencyRates>> get currencyRatesStream => _subject.stream;
+  Stream<Response<List<HistoricalRates>>> get historyRatesStream => _historyController.stream;
 
-  // Stream getters
-  Stream<Response<CurrencyRates>> get currencyRatesStream => _ratesController.stream;
-  Stream<Response<HistoricalRates>> get historyRatesStream => _historyController.stream;
-  Stream<String?> get errorStream => _errorController.stream;
-
-  // Current values getters
-  Response<CurrencyRates>? get currentRates => _ratesController.valueOrNull;
-  Response<HistoricalRates>? get currentHistory => _historyController.valueOrNull;
+  Future<void> fetchCurrencyRates() async {
+    _subject.add(Response.loading('Getting currency rates...'));
+    try {
+      final rates = await _repository.fetchCurrencyRates();
+      _subject.add(Response.completed(rates));
+    } catch (e) {
+      _subject.add(Response.error(e.toString()));
+    }
+  }
 
   Future<void> fetchBaseCurrencyRates(String baseCurrency) async {
-    _ratesController.add(Response.loading('Getting Currency Rates...'));
+    _subject.add(Response.loading('Getting rates for $baseCurrency...'));
     try {
-      final currencyRates = await _repository.fetchBaseCurrencyRates(baseCurrency);
-      _ratesController.add(Response.completed(currencyRates));
-      _errorController.add(null);
+      final rates = await _repository.fetchBaseCurrencyRates(baseCurrency);
+      _subject.add(Response.completed(rates));
     } catch (e) {
-      final errorMsg = 'Error fetching currency rates: ${e.toString()}';
-      _ratesController.add(Response.error(errorMsg));
-      _errorController.add(errorMsg);
+      _subject.add(Response.error(e.toString()));
     }
   }
 
@@ -43,55 +37,40 @@ class CurrencyRatesListBloc {
     String originCurrency,
     String destinationCurrency,
   ) async {
-    _ratesController.add(Response.loading('Getting Specific Rate...'));
+    _subject.add(Response.loading('Getting rate for $originCurrency to $destinationCurrency...'));
     try {
-      final rate = await _repository.fetchSpecificCurrencyRates(
+      final rates = await _repository.fetchSpecificCurrencyRate(
         originCurrency,
         destinationCurrency,
       );
-      _ratesController.add(Response.completed(rate));
-      _errorController.add(null);
+      _subject.add(Response.completed(rates));
     } catch (e) {
-      final errorMsg = 'Error fetching specific rate: ${e.toString()}';
-      _ratesController.add(Response.error(errorMsg));
-      _errorController.add(errorMsg);
+      _subject.add(Response.error(e.toString()));
     }
   }
 
   Future<void> fetchRatesHistory(
     String originCurrency,
     String destinationCurrency,
-    DateTime start,
-    DateTime end,
+    DateTime startDate,
+    DateTime endDate,
   ) async {
-    _historyController.add(Response.loading('Getting Historical Rates...'));
+    _historyController.add(Response.loading('Getting historical rates...'));
     try {
       final history = await _repository.fetchRatesHistory(
         originCurrency,
         destinationCurrency,
-        start,
-        end,
+        startDate,
+        endDate,
       );
       _historyController.add(Response.completed(history));
-      _errorController.add(null);
     } catch (e) {
-      final errorMsg = 'Error fetching rate history: ${e.toString()}';
-      _historyController.add(Response.error(errorMsg));
-      _errorController.add(errorMsg);
-    }
-  }
-
-  Future<void> refreshCurrentRates() async {
-    final currentResponse = _ratesController.valueOrNull;
-    if (currentResponse?.data?.baseCurrency.code != null) {
-      await fetchBaseCurrencyRates(currentResponse!.data!.baseCurrency.code);
+      _historyController.add(Response.error(e.toString()));
     }
   }
 
   void dispose() {
-    _ratesController.close();
+    _subject.close();
     _historyController.close();
-    _errorController.close();
-    _repository.dispose();
   }
 }

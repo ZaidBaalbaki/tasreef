@@ -115,9 +115,8 @@ class _GraphsPageState extends State<GraphsPage> {
           const SizedBox(height: 16),
           Expanded(
             child: CurrencyHistoryGraph(
-              key: _graphKey,
-              originCurrencyCode: _originCurrencyCode,
-              destinationCurrencyCode: _destinationCurrencyCode,
+              originCurrency: _originCurrencyCode,
+              destinationCurrency: _destinationCurrencyCode,
               startDate: _startDate,
               endDate: _endDate,
             ),

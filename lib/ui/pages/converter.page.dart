@@ -25,7 +25,9 @@ class _ConverterPageState extends State<ConverterPage> {
   @override
   void initState() {
     super.initState();
-    _originAmountController.addListener(_updateDestinationAmount);
+    _originAmountController.addListener(() {
+      _updateDestinationAmount(_originAmountController.text);
+    });
     _fetchRate();
   }
 
@@ -41,31 +43,28 @@ class _ConverterPageState extends State<ConverterPage> {
     }
   }
 
-  void _updateDestinationAmount() {
-    if (_originAmountController.text.isEmpty) {
-      _destinationAmountController.text = '';
+  void _updateDestinationAmount(String value) {
+    if (value.isEmpty) {
+      setState(() {
+        _destinationAmountController.text = '';
+      });
       return;
     }
 
     try {
-      final amount = double.tryParse(_originAmountController.text);
-      if (amount == null) {
-        _destinationAmountController.text = '';
-        return;
+      final originAmount = double.parse(value);
+      if (_rate > 0) {
+        final destinationAmount = originAmount * _rate;
+        setState(() {
+          _destinationAmountController.text = destinationAmount.toStringAsFixed(2);
+          _error = null;
+        });
       }
-
-      if (_rate <= 0) {
-        _destinationAmountController.text = '';
-        setState(() => _error = 'Invalid exchange rate');
-        return;
-      }
-
-      final convertedAmount = amount * _rate;
-      _destinationAmountController.text = convertedAmount.toStringAsFixed(2);
-      setState(() => _error = null);
     } catch (e) {
-      _destinationAmountController.text = '';
-      setState(() => _error = 'Error converting amount');
+      setState(() {
+        _destinationAmountController.text = '';
+        _error = 'Invalid amount';
+      });
     }
   }
 
@@ -107,7 +106,7 @@ class _ConverterPageState extends State<ConverterPage> {
               }
               if (rate != null && rate > 0) {
                 _rate = isOrigin ? 1 / rate : rate;
-                _updateDestinationAmount();
+                _updateDestinationAmount(_originAmountController.text);
               }
               _error = null;
             });
@@ -124,16 +123,26 @@ class _ConverterPageState extends State<ConverterPage> {
     return StreamBuilder<Response<CurrencyRates>>(
       stream: _bloc.currencyRatesStream,
       builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data!.status == Status.COMPLETED) {
-          final rate = snapshot.data!.data!.findRate(_destinationCurrencyCode);
-          if (rate != null && rate.rate > 0) {
-            _rate = rate.rate;
-            _updateDestinationAmount();
-          } else {
-            _error = 'Rate not available';
-          }
-        } else if (snapshot.hasData && snapshot.data!.status == Status.ERROR) {
-          _error = snapshot.data!.message;
+        if (snapshot.hasData) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (snapshot.data!.status == Status.COMPLETED) {
+              final rate = snapshot.data!.data!.findRate(_destinationCurrencyCode);
+              if (rate != null && rate.rate > 0) {
+                setState(() {
+                  _rate = rate.rate;
+                });
+                _updateDestinationAmount(_originAmountController.text);
+              } else {
+                setState(() {
+                  _error = 'Rate not available';
+                });
+              }
+            } else if (snapshot.data!.status == Status.ERROR) {
+              setState(() {
+                _error = snapshot.data!.message;
+              });
+            }
+          });
         }
 
         return Padding(
@@ -143,6 +152,7 @@ class _ConverterPageState extends State<ConverterPage> {
               AmountInput(
                 controller: _originAmountController,
                 currencyCode: _originCurrencyCode,
+                onChanged: _updateDestinationAmount,
                 autofocus: true,
               ),
               const SizedBox(height: 16),
@@ -167,7 +177,8 @@ class _ConverterPageState extends State<ConverterPage> {
               AmountInput(
                 controller: _destinationAmountController,
                 currencyCode: _destinationCurrencyCode,
-                enabled: false,
+                onChanged: (_) {},
+                readOnly: true,
               ),
               if (_error != null)
                 Padding(

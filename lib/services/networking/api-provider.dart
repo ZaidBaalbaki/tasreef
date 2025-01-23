@@ -1,34 +1,44 @@
-import 'package:easy_exchange/services/networking/custom-exception.dart';
-import 'package:easy_exchange/util/url.dart';
-
-import 'package:http/http.dart' as http;
-import 'dart:io';
 import 'dart:convert';
-import 'dart:async';
+import 'dart:io';
+import 'package:easy_exchange/services/exceptions.dart';
+import 'package:easy_exchange/util/url.dart';
+import 'package:http/http.dart' as http;
 
 class ApiProvider {
-  final String _baseUrl = Url.exchangeBaseUrl;
   final http.Client _client = http.Client();
 
-  Future<Map<String, dynamic>> get(String url) async {
+  Future<Map<String, dynamic>> get(String endpoint) async {
     try {
-      final uri = Uri.parse(_baseUrl + url);
-      final response = await _client.get(uri);
+      print('Fetching data from: $endpoint'); // Debug log
+      final response = await _client.get(Uri.parse(endpoint));
       return _handleResponse(response);
     } on SocketException {
       throw FetchDataException('No Internet connection');
-    } on FormatException {
-      throw FetchDataException('Invalid response format');
     } catch (e) {
-      throw FetchDataException('An unexpected error occurred: ${e.toString()}');
+      print('Error during API call: $e'); // Debug log
+      throw FetchDataException('Error occurred: $e');
     }
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
+    print('Response status code: ${response.statusCode}'); // Debug log
+    print('Response body: ${response.body}'); // Debug log
+    
     switch (response.statusCode) {
       case 200:
-        final responseJson = json.decode(response.body) as Map<String, dynamic>;
-        return responseJson;
+        try {
+          final Map<String, dynamic>? decodedJson = json.decode(response.body) as Map<String, dynamic>?;
+          if (decodedJson == null) {
+            throw FetchDataException('Response body is null');
+          }
+          if (!decodedJson.containsKey('rates')) {
+            throw FetchDataException('Response missing rates data');
+          }
+          return decodedJson;
+        } catch (e) {
+          print('Error parsing response: $e'); // Debug log
+          throw FetchDataException('Invalid response format: $e');
+        }
       case 400:
         throw BadRequestException(response.body);
       case 401:
@@ -37,11 +47,8 @@ class ApiProvider {
       case 404:
         throw NotFoundException(response.body);
       case 500:
-        throw ServerException(response.body);
       default:
-        throw FetchDataException(
-          'Error occurred while communicating with server. Status code: ${response.statusCode}',
-        );
+        throw ServerException('Server error: ${response.statusCode}');
     }
   }
 

@@ -13,37 +13,38 @@ class CurrencyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currency = Currency(currencyCode);
+    final currency = Currency(
+      code: currencyCode,
+      name: _getCurrencyName(currencyCode),
+    );
+
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Theme.of(context).primaryColor,
-        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              currency.code,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.arrow_drop_down,
-              color: Theme.of(context).primaryColor,
-            ),
-          ],
+      child: Text(
+        currency.code,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
+  }
+
+  String _getCurrencyName(String code) {
+    const names = {
+      'USD': 'US Dollar',
+      'SYP': 'Syrian Pound',
+      'LBP': 'Lebanese Pound',
+      'AED': 'UAE Dirham',
+      'SAR': 'Saudi Riyal',
+      'TRY': 'Turkish Lira',
+    };
+    return names[code] ?? code;
   }
 }

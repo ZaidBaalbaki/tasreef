@@ -70,8 +70,7 @@ class _RatesPageState extends State<RatesPage> {
           Expanded(
             child: _showRoundedList
                 ? CurrencyRateRoundedList(
-                    baseCurrency: _originCurrencyCode,
-                    onCurrencySelected: _onCurrencySelected,
+                    originCurrencyCode: _originCurrencyCode,
                   )
                 : CurrencyRateList(
                     baseCurrency: _originCurrencyCode,

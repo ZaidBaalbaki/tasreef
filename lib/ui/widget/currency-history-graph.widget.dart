@@ -6,15 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class CurrencyHistoryGraph extends StatefulWidget {
-  final String originCurrencyCode;
-  final String destinationCurrencyCode;
+  final String originCurrency;
+  final String destinationCurrency;
   final DateTime startDate;
   final DateTime endDate;
 
   const CurrencyHistoryGraph({
     super.key,
-    required this.originCurrencyCode,
-    required this.destinationCurrencyCode,
+    required this.originCurrency,
+    required this.destinationCurrency,
     required this.startDate,
     required this.endDate,
   });
@@ -29,24 +29,13 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _fetchHistory();
   }
 
-  @override
-  void didUpdateWidget(CurrencyHistoryGraph oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.originCurrencyCode != widget.originCurrencyCode ||
-        oldWidget.destinationCurrencyCode != widget.destinationCurrencyCode ||
-        oldWidget.startDate != widget.startDate ||
-        oldWidget.endDate != widget.endDate) {
-      _fetchData();
-    }
-  }
-
-  void _fetchData() {
+  void _fetchHistory() {
     _bloc.fetchRatesHistory(
-      widget.originCurrencyCode,
-      widget.destinationCurrencyCode,
+      widget.originCurrency,
+      widget.destinationCurrency,
       widget.startDate,
       widget.endDate,
     );
@@ -54,9 +43,9 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Response<HistoricalRates>>(
+    return StreamBuilder<Response<List<HistoricalRates>>>(
       stream: _bloc.historyRatesStream,
-      builder: (context, AsyncSnapshot<Response<HistoricalRates>> snapshot) {
+      builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -66,17 +55,78 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
           case Status.LOADING:
             return const Center(child: CircularProgressIndicator());
           case Status.COMPLETED:
-            if (response.data!.rates.isEmpty) {
+            final historicalRates = response.data!;
+            if (historicalRates.isEmpty) {
               return const Center(
                 child: Text(
-                  'No data available for this period',
-                  style: TextStyle(color: Colors.grey),
+                  'No historical data available',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
                 ),
               );
             }
-            return Container(
-              padding: const EdgeInsets.all(8.0),
-              child: _buildHistoryChart(response.data!),
+
+            final spots = historicalRates.map((point) {
+              return FlSpot(
+                point.date.millisecondsSinceEpoch.toDouble(),
+                point.rate,
+              );
+            }).toList();
+
+            return SizedBox(
+              height: 300,
+              child: LineChart(
+                LineChartData(
+                  gridData: const FlGridData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final date = DateTime.fromMillisecondsSinceEpoch(
+                            value.toInt(),
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              DateFormat('MMM d').format(date),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: Theme.of(context).primaryColor,
+                      barWidth: 2,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           case Status.ERROR:
             return Center(
@@ -87,93 +137,6 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
             );
         }
       },
-    );
-  }
-
-  Widget _buildHistoryChart(HistoricalRates historicalRates) {
-    final spots = historicalRates.rates.map((point) {
-      final rate = point.findRate(widget.destinationCurrencyCode);
-      return FlSpot(
-        point.date.millisecondsSinceEpoch.toDouble(),
-        rate?.rate ?? 0.0,
-      );
-    }).toList();
-
-    return Column(
-      children: [
-        Text(
-          '${widget.originCurrencyCode}/${widget.destinationCurrencyCode} Exchange Rate',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: LineChart(
-            LineChartData(
-              gridData: const FlGridData(show: true),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 30,
-                    getTitlesWidget: (value, meta) {
-                      final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          DateFormat('MMM d').format(date),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-              ),
-              borderData: FlBorderData(show: true),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  color: Theme.of(context).primaryColor,
-                  barWidth: 2,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  ),
-                ),
-              ],
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  tooltipBgColor: Colors.white.withOpacity(0.8),
-                  getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                    return touchedSpots.map((LineBarSpot touchedSpot) {
-                      final date = DateTime.fromMillisecondsSinceEpoch(
-                        touchedSpot.x.toInt(),
-                      );
-                      return LineTooltipItem(
-                        '${DateFormat('MMM d, yyyy').format(date)}\n${touchedSpot.y.toStringAsFixed(4)}',
-                        const TextStyle(color: Colors.black),
-                      );
-                    }).toList();
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

@@ -5,12 +5,16 @@ class AmountInput extends StatelessWidget {
   final TextEditingController controller;
   final String currencyCode;
   final bool autofocus;
+  final bool readOnly;
+  final Function(String) onChanged;
 
   const AmountInput({
     super.key,
     required this.controller,
     required this.currencyCode,
+    required this.onChanged,
     this.autofocus = false,
+    this.readOnly = false,
   });
 
   @override
@@ -18,6 +22,7 @@ class AmountInput extends StatelessWidget {
     return TextField(
       controller: controller,
       autofocus: autofocus,
+      readOnly: readOnly,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.center,
       style: const TextStyle(
@@ -40,6 +45,7 @@ class AmountInput extends StatelessWidget {
         FilteringTextInputFormatter.deny(RegExp('-')),
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
+      onChanged: onChanged,
     );
   }
 }
