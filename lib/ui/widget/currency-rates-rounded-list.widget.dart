@@ -1,17 +1,14 @@
 import 'package:easy_exchange/model/currency-rates.dart';
 import 'package:easy_exchange/services/bloc/currency-rate-bloc.dart';
 import 'package:easy_exchange/services/networking/response.dart';
-import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
 import 'package:flutter/material.dart';
 
 class CurrencyRateRoundedList extends StatefulWidget {
-  final String baseCurrency;
-  final CurrencyCallback? onCurrencySelected;
+  final String originCurrencyCode;
 
   const CurrencyRateRoundedList({
     super.key,
-    required this.baseCurrency,
-    this.onCurrencySelected,
+    required this.originCurrencyCode,
   });
 
   @override
@@ -24,15 +21,34 @@ class _CurrencyRateRoundedListState extends State<CurrencyRateRoundedList> {
   @override
   void initState() {
     super.initState();
-    _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
+    _fetchData();
   }
 
   @override
   void didUpdateWidget(CurrencyRateRoundedList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.baseCurrency != widget.baseCurrency) {
-      _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
+    if (oldWidget.originCurrencyCode != widget.originCurrencyCode) {
+      _fetchData();
     }
+  }
+
+  void _fetchData() {
+    _bloc.fetchBaseCurrencyRates(widget.originCurrencyCode);
+  }
+
+  final List<String> _allowedCurrencies = const [
+    'USD',
+    'SYP',
+    'LBP',
+    'AED',
+    'SAR',
+    'TRY',
+  ];
+
+  List<Rate> _filterRates(List<Rate> rates) {
+    return rates
+        .where((rate) => _allowedCurrencies.contains(rate.currency.code))
+        .toList();
   }
 
   @override
@@ -49,57 +65,51 @@ class _CurrencyRateRoundedListState extends State<CurrencyRateRoundedList> {
           case Status.LOADING:
             return const Center(child: CircularProgressIndicator());
           case Status.COMPLETED:
-            final rates = response.data!.rates;
-            return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.5,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: rates.length,
+            final filteredRates = _filterRates(response.data!.rates);
+            if (filteredRates.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No rates available',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: filteredRates.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final rate = rates[index];
-                return InkWell(
-                  onTap: widget.onCurrencySelected != null
-                      ? () => widget.onCurrencySelected!(rate.currency.code, rate.rate)
-                      : null,
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                final rate = filteredRates[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      rate.currency.code,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            rate.currency.code,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            rate.currency.name,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            rate.rate.toStringAsFixed(4),
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ],
+                    subtitle: Text(rate.currency.name),
+                    trailing: Text(
+                      rate.rate.toStringAsFixed(4),
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),

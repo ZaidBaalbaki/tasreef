@@ -5,15 +5,15 @@ import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
 import 'package:flutter/material.dart';
 
 class CurrencyRateList extends StatefulWidget {
-  final String baseCurrency;
-  final CurrencyCallback? onCurrencySelected;
   final String? searchQuery;
+  final Function(String, double)? onCurrencySelected;
+  final String baseCurrency;
 
   const CurrencyRateList({
     super.key,
-    required this.baseCurrency,
-    this.onCurrencySelected,
     this.searchQuery,
+    this.onCurrencySelected,
+    required this.baseCurrency,
   });
 
   @override
@@ -29,22 +29,31 @@ class _CurrencyRateListState extends State<CurrencyRateList> {
     _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
   }
 
-  @override
-  void didUpdateWidget(CurrencyRateList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.baseCurrency != widget.baseCurrency) {
-      _bloc.fetchBaseCurrencyRates(widget.baseCurrency);
-    }
-  }
+  final List<String> _allowedCurrencies = const [
+    'USD',
+    'SYP',
+    'LBP',
+    'AED',
+    'SAR',
+    'TRY',
+  ];
 
   List<Rate> _filterRates(List<Rate> rates) {
-    if (widget.searchQuery == null || widget.searchQuery!.isEmpty) {
-      return rates;
+    // First filter by allowed currencies
+    var filteredRates = rates.where((rate) => 
+      _allowedCurrencies.contains(rate.currency.code)
+    ).toList();
+
+    // Then apply search if provided
+    if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+      filteredRates = filteredRates.where((rate) {
+        final query = widget.searchQuery!.toLowerCase();
+        return rate.currency.code.toLowerCase().contains(query) ||
+            rate.currency.name.toLowerCase().contains(query);
+      }).toList();
     }
-    return rates.where((rate) {
-      return rate.currency.code.toLowerCase().contains(widget.searchQuery!) ||
-          rate.currency.name.toLowerCase().contains(widget.searchQuery!);
-    }).toList();
+
+    return filteredRates;
   }
 
   @override
@@ -62,16 +71,28 @@ class _CurrencyRateListState extends State<CurrencyRateList> {
             return const Center(child: CircularProgressIndicator());
           case Status.COMPLETED:
             final filteredRates = _filterRates(response.data!.rates);
-            if (filteredRates.isEmpty && widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
-              return const Center(
-                child: Text(
-                  'No currencies found',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
+            if (filteredRates.isEmpty) {
+              if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+                return const Center(
+                  child: Text(
+                    'No currencies found',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
                   ),
-                ),
-              );
+                );
+              } else {
+                return const Center(
+                  child: Text(
+                    'No rates available',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              }
             }
             return ListView.separated(
               itemCount: filteredRates.length,
