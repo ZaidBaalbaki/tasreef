@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+\name: Deploy to GitHub Pages
 
 on:
   push:
@@ -24,18 +24,15 @@ jobs:
           
       - name: Setup project
         run: |
-          flutter config --no-analytics
-          flutter config --clear-features
+          flutter --disable-analytics
           flutter config --enable-web
-          flutter config --no-android
-          flutter config --no-ios
           
       - name: Install dependencies
         run: |
           rm -rf .dart_tool/
           rm -f pubspec.lock
           flutter clean
-          flutter pub get --no-example
+          flutter pub get
         
       - name: Build web app
         run: |
