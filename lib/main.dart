@@ -39,9 +39,38 @@ class EasyExchange extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: ChangeNotifierProvider<BottomNavigationBarProvider>(
-        create: (BuildContext context) => BottomNavigationBarProvider(),
-        child: const BottomNavigationBarWidget(),
+      home: FutureBuilder(
+        future: Future.delayed(const Duration(milliseconds: 1000)),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Loading Easy Exchange...',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 16,
+                        fontFamily: 'TitilliumWeb',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return ChangeNotifierProvider<BottomNavigationBarProvider>(
+            create: (BuildContext context) => BottomNavigationBarProvider(),
+            child: const BottomNavigationBarWidget(),
+          );
+        },
       ),
     );
   }
