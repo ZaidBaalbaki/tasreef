@@ -12,7 +12,7 @@ class GraphsPage extends StatefulWidget {
 
 class _GraphsPageState extends State<GraphsPage> {
   String _originCurrencyCode = 'USD';
-  String _destinationCurrencyCode = 'EUR';
+  String _destinationCurrencyCode = 'SYP';
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
   String _selectedPeriod = '1M';

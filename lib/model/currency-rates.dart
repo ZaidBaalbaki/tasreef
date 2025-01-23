@@ -7,25 +7,11 @@ class Currency {
   static String _getCurrencyName(String code) {
     const Map<String, String> currencyNames = {
       'USD': 'US Dollar',
-      'EUR': 'Euro',
-      'GBP': 'British Pound',
-      'JPY': 'Japanese Yen',
-      'AUD': 'Australian Dollar',
-      'CAD': 'Canadian Dollar',
-      'CHF': 'Swiss Franc',
-      'CNY': 'Chinese Yuan',
-      'INR': 'Indian Rupee',
-      'NZD': 'New Zealand Dollar',
-      'SGD': 'Singapore Dollar',
-      'HKD': 'Hong Kong Dollar',
-      'SEK': 'Swedish Krona',
-      'KRW': 'South Korean Won',
-      'TRY': 'Turkish Lira',
-      'RUB': 'Russian Ruble',
-      'BRL': 'Brazilian Real',
-      'ZAR': 'South African Rand',
-      'MXN': 'Mexican Peso',
+      'SYP': 'Syrian Pound',
+      'LBP': 'Lebanese Pound',
       'AED': 'UAE Dirham',
+      'SAR': 'Saudi Riyal',
+      'TRY': 'Turkish Lira',
     };
     return currencyNames[code] ?? code;
   }

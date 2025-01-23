@@ -16,9 +16,9 @@ class ConverterPage extends StatefulWidget {
 class _ConverterPageState extends State<ConverterPage> {
   final _originAmountController = TextEditingController();
   final _destinationAmountController = TextEditingController();
-  final _bloc = CurrencyRatesListBloc();
+  final CurrencyRatesListBloc _bloc = CurrencyRatesListBloc();
   String _originCurrencyCode = 'USD';
-  String _destinationCurrencyCode = 'EUR';
+  String _destinationCurrencyCode = 'SYP';
   double _rate = 0.0;
 
   @override
