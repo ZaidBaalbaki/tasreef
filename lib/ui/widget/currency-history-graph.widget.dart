@@ -29,6 +29,21 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
   @override
   void initState() {
     super.initState();
+    _fetchData();
+  }
+
+  @override
+  void didUpdateWidget(CurrencyHistoryGraph oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.originCurrencyCode != widget.originCurrencyCode ||
+        oldWidget.destinationCurrencyCode != widget.destinationCurrencyCode ||
+        oldWidget.startDate != widget.startDate ||
+        oldWidget.endDate != widget.endDate) {
+      _fetchData();
+    }
+  }
+
+  void _fetchData() {
     _bloc.fetchRatesHistory(
       widget.originCurrencyCode,
       widget.destinationCurrencyCode,
@@ -51,6 +66,14 @@ class _CurrencyHistoryGraphState extends State<CurrencyHistoryGraph> {
           case Status.LOADING:
             return const Center(child: CircularProgressIndicator());
           case Status.COMPLETED:
+            if (response.data!.rates.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No data available for this period',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
             return Container(
               padding: const EdgeInsets.all(8.0),
               child: _buildHistoryChart(response.data!),

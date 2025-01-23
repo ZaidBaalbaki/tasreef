@@ -1,5 +1,6 @@
 import 'package:easy_exchange/ui/widget/currency-button.widget.dart';
 import 'package:easy_exchange/ui/widget/currency-history-graph.widget.dart';
+import 'package:easy_exchange/ui/widget/currencies-bottom-sheet.widget.dart';
 import 'package:flutter/material.dart';
 
 class GraphsPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class _GraphsPageState extends State<GraphsPage> {
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
   String _selectedPeriod = '1M';
+  Key _graphKey = UniqueKey();
 
   void _updatePeriod(String period) {
     setState(() {
@@ -37,7 +39,34 @@ class _GraphsPageState extends State<GraphsPage> {
           break;
       }
       _endDate = DateTime.now();
+      _graphKey = UniqueKey(); // Force graph rebuild
     });
+  }
+
+  Future<void> _selectCurrency(bool isOrigin) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return CurrenciesBottomSheet(
+          onCurrencySelected: (code, rate) {
+            Navigator.pop(context, {'code': code, 'rate': rate});
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+        if (isOrigin) {
+          _originCurrencyCode = result['code'];
+        } else {
+          _destinationCurrencyCode = result['code'];
+        }
+        _graphKey = UniqueKey(); // Force graph rebuild
+      });
+    }
   }
 
   @override
@@ -52,16 +81,12 @@ class _GraphsPageState extends State<GraphsPage> {
             children: [
               CurrencyButton(
                 currencyCode: _originCurrencyCode,
-                onPressed: () async {
-                  // TODO: Implement currency selection
-                },
+                onPressed: () => _selectCurrency(true),
               ),
               const Icon(Icons.compare_arrows),
               CurrencyButton(
                 currencyCode: _destinationCurrencyCode,
-                onPressed: () async {
-                  // TODO: Implement currency selection
-                },
+                onPressed: () => _selectCurrency(false),
               ),
             ],
           ),
@@ -89,6 +114,7 @@ class _GraphsPageState extends State<GraphsPage> {
           const SizedBox(height: 16),
           Expanded(
             child: CurrencyHistoryGraph(
+              key: _graphKey,
               originCurrencyCode: _originCurrencyCode,
               destinationCurrencyCode: _destinationCurrencyCode,
               startDate: _startDate,
